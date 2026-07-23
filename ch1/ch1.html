@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CH1 발생 현황</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="korea_geo.js"></script>
+<script src="data.js"></script>
+<script src="all_muni.js"></script>
+<style>
+:root{--bg:#f5f3ee;--bg2:#fff;--bg3:#ede9e1;--bg4:#e0dbd2;--border:rgba(88,72,48,.08);--border2:rgba(88,72,48,.16);--text:#2c2a24;--text2:#5e5a50;--text3:#918b7e;--green:#3a9a6e;--green-bg:rgba(58,154,110,.10);--red:#c04b3a;--red-bg:rgba(192,75,58,.10);--blue:#4a7fb5;--blue-bg:rgba(74,127,181,.10);--amber:#b8860b;--amber-bg:rgba(184,134,11,.12);--brown:#7a5c3e;--brown-bg:rgba(122,92,62,.10);--pine:#2d6b3f;--pine-bg:rgba(45,107,63,.10);--mono:'JetBrains Mono',monospace;--sans:'Noto Sans KR',sans-serif;--shadow:0 2px 8px rgba(88,72,48,.04);--shadow2:0 4px 20px rgba(88,72,48,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;min-height:100vh}
+
+.header{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:200;box-shadow:var(--shadow)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{width:32px;height:32px;background:var(--pine);color:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.logo-text{font-size:14px;font-weight:700}.logo-sub{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:1px}
+.header-meta{font-size:10px;color:var(--text3);font-family:var(--mono);text-align:right;line-height:1.6}
+
+/* Year selector */
+.year-bar{display:flex;align-items:center;gap:6px;padding:10px 24px;border-bottom:1px solid var(--border);background:var(--bg2);flex-wrap:wrap}
+.year-label{font-size:11px;font-family:var(--mono);color:var(--text3);font-weight:600;margin-right:4px}
+.year-btn{padding:6px 14px;border-radius:6px;border:1px solid var(--border2);font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);background:var(--bg);transition:all .15s;font-family:var(--mono)}
+.year-btn:hover{border-color:var(--pine);color:var(--pine);background:var(--pine-bg)}
+.year-btn.active{background:var(--pine);color:#fff;border-color:var(--pine)}
+.year-play{padding:6px 12px;border-radius:6px;border:1px solid var(--amber);font-size:11px;font-weight:600;cursor:pointer;color:var(--amber);background:var(--amber-bg);margin-left:8px}
+.year-play:hover{background:var(--amber);color:#fff}
+
+.tabs{display:flex;gap:4px;padding:10px 24px;border-bottom:1px solid var(--border);background:var(--bg2);overflow-x:auto}
+.tab{padding:8px 16px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);transition:all .15s;border:1px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.tab:hover{color:var(--text);background:var(--bg3)}
+.tab.active{color:var(--pine);background:var(--pine-bg);border-color:rgba(45,107,63,.25)}
+.tab-num{font-family:var(--mono);font-size:10px;opacity:.6;font-weight:600}
+
+.page{display:none;padding:20px 24px 60px;animation:fadeIn .2s ease}.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+.section-header{display:flex;align-items:center;gap:12px;margin:32px 0 18px}.section-header:first-child{margin-top:0}
+.section-badge{font-family:var(--mono);font-size:13px;color:var(--brown);background:var(--brown-bg);border:1px solid rgba(122,92,62,.3);border-radius:6px;padding:5px 10px;font-weight:700}
+.section-title{font-size:22px;font-weight:700;letter-spacing:-.5px}
+.section-meta{font-size:12px;color:var(--text3);font-family:var(--mono);margin-left:auto}
+
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:18px;overflow:hidden;box-shadow:var(--shadow)}
+.panel-title{font-size:17px;color:var(--text);letter-spacing:-.2px;margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700}
+.panel-badge{font-size:9px;background:var(--bg3);border:1px solid var(--border2);border-radius:3px;padding:2px 6px;color:var(--text2);font-family:var(--mono)}
+.panel-badge.warn{color:var(--red);background:var(--red-bg);border-color:rgba(192,75,58,.3)}
+
+.kpi-row{display:grid;gap:14px;margin-bottom:16px}
+.kpi-row.k4{grid-template-columns:repeat(4,1fr)}.kpi-row.k5{grid-template-columns:repeat(5,1fr)}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:18px 20px;display:grid;grid-template-columns:auto 1fr;grid-template-areas:"icon label" "icon val" "icon sub";column-gap:14px;row-gap:2px;align-items:center;box-shadow:var(--shadow2)}
+.kpi-label{grid-area:label;font-size:12px;color:var(--text2);font-weight:500}
+.kpi-val{grid-area:val;font-size:28px;font-weight:700;font-family:var(--mono);letter-spacing:-1.4px;line-height:1.05;display:flex;align-items:baseline;gap:4px}
+.kpi-unit{font-size:12px;font-weight:500;color:var(--text2)}
+.kpi-sub{grid-area:sub;font-size:10px;color:var(--text3);font-family:var(--mono)}
+.kpi-icon{grid-area:icon;width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.kpi.green .kpi-icon{background:var(--green-bg);color:var(--green)}
+.kpi.red .kpi-icon{background:var(--red-bg);color:var(--red)}
+.kpi.blue .kpi-icon{background:var(--blue-bg);color:var(--blue)}
+.kpi.amber .kpi-icon{background:var(--amber-bg);color:var(--amber)}
+.kpi.brown .kpi-icon{background:var(--brown-bg);color:var(--brown)}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.grid-map-right{display:grid;grid-template-columns:1fr 420px;gap:12px;margin-bottom:12px}
+.mb12{margin-bottom:12px}
+
+.chart-wrap{position:relative}
+.h200{height:200px}.h240{height:240px}.h280{height:280px}.h320{height:320px}.h360{height:360px}
+
+/* MAP - no tiles, just polygons */
+.lmap{width:100%;border-radius:8px;background:#d4e6f1;z-index:1}
+.lmap.h500{height:500px}
+.leaflet-container{background:#d4e6f1 !important;font-family:var(--sans) !important}
+.leaflet-control-attribution{display:none !important}
+.leaflet-control-zoom a{background:var(--bg2) !important;color:var(--text) !important;border-color:var(--border2) !important;width:28px !important;height:28px !important;line-height:28px !important;font-size:16px !important;border-radius:6px !important}
+.map-tooltip{background:#1e2836 !important;border:none !important;color:#f5f7fa !important;font-family:var(--sans) !important;font-size:12px !important;padding:10px 14px !important;border-radius:8px !important;box-shadow:0 6px 20px rgba(0,0,0,.3) !important;line-height:1.6 !important;max-width:230px !important}
+.map-tooltip .tt-name{font-weight:700;font-size:15px;color:#fff;margin-bottom:2px}
+.map-tooltip .tt-sido{font-size:10px;color:#8899aa;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.1)}
+.map-tooltip .tt-row{display:flex;justify-content:space-between;gap:16px;padding:1px 0}
+.map-tooltip .tt-label{color:#8899aa;font-size:11px}
+.map-tooltip .tt-val{font-family:var(--mono);font-weight:600;font-size:12px}
+.map-tooltip .tt-val.bad{color:#f87171}.map-tooltip .tt-val.good{color:#34d399}.map-tooltip .tt-val.warn{color:#fbbf24}
+.map-label{background:rgba(44,42,36,.9) !important;border:none !important;color:#fff !important;font-family:var(--sans) !important;font-size:10px !important;font-weight:600 !important;padding:2px 6px !important;border-radius:3px !important;white-space:nowrap !important;text-align:center !important;line-height:1.3 !important;box-shadow:0 2px 6px rgba(0,0,0,.25) !important;pointer-events:none !important}
+.map-label .lv{font-family:var(--mono);font-size:11px;color:#fbbf24;font-weight:700}
+.map-legend{position:absolute;bottom:12px;left:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;z-index:1000;font-size:11px;box-shadow:var(--shadow2)}
+.map-legend-title{font-weight:700;font-size:10px;font-family:var(--mono);color:var(--text3);margin-bottom:6px}
+.map-legend-row{display:flex;align-items:center;gap:6px;margin:2px 0}
+.map-legend-color{width:20px;height:10px;border-radius:2px;border:1px solid rgba(0,0,0,.1)}
+.map-back-btn{position:absolute;top:12px;right:12px;z-index:1000;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;box-shadow:var(--shadow);display:none}
+.map-back-btn:hover{background:var(--bg3)}
+
+.rank-table{width:100%;border-collapse:collapse;font-size:12px}
+.rank-table th{text-align:left;padding:7px 8px;font-size:10px;font-family:var(--mono);color:var(--text3);border-bottom:1px solid var(--border2);font-weight:600}
+.rank-table td{padding:7px 8px;border-bottom:1px solid var(--border)}
+.rank-table tr:last-child td{border-bottom:none}
+.rank-table .num{font-family:var(--mono);font-weight:600;color:var(--brown);width:24px;text-align:center}
+.rank-table .name{font-weight:600;font-size:12px}
+.rank-table .val{font-family:var(--mono);text-align:right;font-weight:600}
+.rank-table .val.bad{color:var(--red)}.rank-table .val.good{color:var(--green)}
+.bar-cell{width:90px}.bar-bg{height:7px;background:var(--bg3);border-radius:4px;overflow:hidden}.bar-fill{height:100%;border-radius:4px}
+
+.legend-row{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.legend-dot{width:10px;height:10px;border-radius:2px}
+
+.insight-box{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:14px 18px;margin-top:12px;font-size:13px;color:var(--text2);line-height:1.7}
+.insight-box strong{color:var(--text);font-weight:600}
+.insight-box .hl{color:var(--red);font-weight:700;font-family:var(--mono)}
+.source-box{margin-top:8px;padding:8px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;font-size:10px;color:var(--text3);font-family:var(--mono);line-height:1.6}
+
+/* Heatmap */
+.heatmap-wrap{overflow-x:auto;padding-bottom:4px}
+.heatmap{border-collapse:collapse;font-size:10px;font-family:var(--mono);width:100%}
+.heatmap th{padding:6px 8px;font-weight:600;color:var(--text3);border-bottom:1px solid var(--border2);position:sticky;top:0;background:var(--bg2);z-index:1}
+.heatmap td{padding:5px 8px;text-align:center;font-weight:600;border:1px solid rgba(255,255,255,.4);min-width:56px;cursor:default;transition:opacity .1s}
+.heatmap .row-name{text-align:left;font-weight:600;color:var(--text);font-size:11px;white-space:nowrap;position:sticky;left:0;background:var(--bg2);z-index:1;border-right:1px solid var(--border)}
+
+@media(max-width:1000px){.kpi-row.k4,.kpi-row.k5{grid-template-columns:repeat(2,1fr)}.grid-2,.grid-map-right{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo"><div class="logo-mark">🌲</div><div><div class="logo-text">소나무재선충병 방제 취약지역 분석 대시보드</div><div class="logo-sub">CH.1 — 발생 현황 파악</div></div></div>
+  <div class="header-meta">산림청 병해충발생관리정보 · KOSIS 산림병해충 통계<br>산림기본통계 · 임상도 · e-나라지표</div>
+</div>
+
+<div class="year-bar">
+  <span class="year-label">기준연도</span>
+  <div id="year-btns"></div>
+  <button class="year-play" id="play-btn" onclick="playYears()">▶ 재생</button>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showPage(0)"><span class="tab-num">1.1</span>지역별 발생 분포</div>
+  <div class="tab" onclick="showPage(1)"><span class="tab-num">1.2</span>연도별 피해 추세</div>
+  <div class="tab" onclick="showPage(2)"><span class="tab-num">1.3</span>방제 실적 · 반복 발생</div>
+  <div class="tab" onclick="showPage(3)"><span class="tab-num">1.4</span>히트맵 · 심화분석</div>
+</div>
+
+<!-- PAGE 1.1 -->
+<div class="page active" id="page0">
+  <div class="section-header" style="margin-top:0"><span class="section-badge">1.1</span><span class="section-title">지역별 발생 분포</span><span class="section-meta" id="yr-label">2023년 기준</span></div>
+  <div class="kpi-row k5" id="kpi-11"></div>
+  <div class="panel mb12" style="position:relative">
+    <div class="panel-title">전국 시군구별 피해 현황 <span class="panel-badge">코로플레스 · 클릭하여 시도 확대</span></div>
+    <div id="map11" class="lmap h500"></div>
+    <div class="map-legend" id="map-legend"></div>
+    <div class="map-back-btn" id="map-back" onclick="mapZoomOut()">← 전국 보기</div>
+  </div>
+  <div class="grid-map-right">
+    <div class="panel">
+      <div class="panel-title">시도별 피해 비중 <span class="panel-badge" id="pie-yr-badge">2023</span></div>
+      <div class="chart-wrap h320"><canvas id="chart-pie"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">피해 TOP 10 시군구 <span class="panel-badge warn">고위험</span></div>
+      <div id="top10-tbl"></div>
+    </div>
+  </div>
+  <div class="panel mb12">
+    <div class="panel-title">시도별 소나무림 1,000ha당 피해본수 <span class="panel-badge">표준화</span></div>
+    <div class="chart-wrap h240"><canvas id="chart-density"></canvas></div>
+  </div>
+  <div class="insight-box" id="insight-11"></div>
+  <div class="source-box"><strong>출처:</strong> 산림청_병해충발생관리정보(공공데이터포털) · KOSIS 산림병해충발생및방제현황 · 산림기본통계 · 임상도(산림공간정보서비스)</div>
+</div>
+
+<!-- PAGE 1.2 -->
+<div class="page" id="page1">
+  <div class="section-header" style="margin-top:0"><span class="section-badge">1.2</span><span class="section-title">연도별 피해 추세</span></div>
+  <div class="kpi-row k4" id="kpi-12"></div>
+  <div class="grid-2">
+    <div class="panel"><div class="panel-title">전국 피해·방제·방제율 추이</div><div class="chart-wrap h280"><canvas id="chart-trend"></canvas></div></div>
+    <div class="panel"><div class="panel-title">시도별 누적 추이</div><div class="chart-wrap h280"><canvas id="chart-stack"></canvas></div></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel"><div class="panel-title">전년 대비 증감율</div><div class="chart-wrap h240"><canvas id="chart-yoy"></canvas></div></div>
+    <div class="panel"><div class="panel-title">반출금지구역 추이</div><div class="chart-wrap h240"><canvas id="chart-qz"></canvas></div></div>
+  </div>
+  <div class="panel mb12"><div class="panel-title">소나무림 면적 감소 추세 (추정) <span class="panel-badge">수종 변화</span></div><div class="chart-wrap h240"><canvas id="chart-pine-decline"></canvas></div></div>
+  <div class="insight-box"><strong>핵심 발견:</strong> 피해는 2019년 정점 이후 감소하나 <strong>감소율이 둔화</strong>(2020 -22% → 2023 -8.5%)되고 있으며, 소나무림 면적은 8년간 약 <span class="hl">6.2%</span> 감소했습니다. 이는 재선충 피해로 인한 수종 변화가 진행 중임을 보여줍니다.</div>
+</div>
+
+<!-- PAGE 1.3 -->
+<div class="page" id="page2">
+  <div class="section-header" style="margin-top:0"><span class="section-badge">1.3</span><span class="section-title">방제 실적 · 반복 발생</span></div>
+  <div class="kpi-row k4" id="kpi-13"></div>
+  <div class="grid-2">
+    <div class="panel"><div class="panel-title">관리주체별 방제율 격차 <span class="panel-badge warn">산림청 vs 지자체</span></div><div class="chart-wrap h280"><canvas id="chart-auth"></canvas></div></div>
+    <div class="panel"><div class="panel-title">방제방법별 실적</div><div class="chart-wrap h280"><canvas id="chart-methods"></canvas></div></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel"><div class="panel-title">연속 발생연수 분포 <span class="panel-badge warn">재발</span></div><div class="chart-wrap h240"><canvas id="chart-recur"></canvas></div></div>
+    <div class="panel"><div class="panel-title">방제율 하위 시군구</div><div id="low-tbl"></div></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel"><div class="panel-title">방제율 vs 다음해 피해변화 <span class="panel-badge">산점도</span></div><div class="chart-wrap h280"><canvas id="chart-scatter"></canvas></div></div>
+    <div class="panel"><div class="panel-title">방제율 격차 원인: 담당자 1인당 산림면적 <span class="panel-badge">CH2 연결</span></div><div class="chart-wrap h280"><canvas id="chart-burden"></canvas></div></div>
+  </div>
+  <div class="insight-box"><strong>핵심 발견:</strong> 산림청 <span class="hl">99.9%</span> vs 지자체 <span class="hl" id="ins-lr"></span> — 방제율 80% 미만 지역에서 다음 해 피해 +12.4% 증가. 담당자 1인당 산림면적이 클수록 방제율이 낮아지는 구조적 원인이 확인됩니다.</div>
+</div>
+
+<!-- PAGE 1.4 NEW -->
+<div class="page" id="page3">
+  <div class="section-header" style="margin-top:0"><span class="section-badge">1.4</span><span class="section-title">히트맵 · 심화분석</span></div>
+  <div class="panel mb12">
+    <div class="panel-title">시군구 × 연도 피해 히트맵 <span class="panel-badge">타임라인</span></div>
+    <div class="heatmap-wrap" id="heatmap-wrap"></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel"><div class="panel-title">시도별 피해 집중도 변화 <span class="panel-badge">HHI 지수</span></div><div class="chart-wrap h280"><canvas id="chart-hhi"></canvas></div></div>
+    <div class="panel"><div class="panel-title">피해 상위 5개 시군구 점유율 변화</div><div class="chart-wrap h280"><canvas id="chart-top5share"></canvas></div></div>
+  </div>
+  <div class="insight-box"><strong>핵심 발견:</strong> 히트맵에서 <strong>경주시·거제시·통영시</strong>는 전 기간 고위험(짙은 적색)을 유지하며, 이는 구조적 방제 취약지역임을 시각적으로 확인시킵니다. 피해 집중도(HHI)가 상승하고 있어 <strong>특정 지역 고착화</strong> 현상이 뚜렷합니다.</div>
+</div>
+
+<script>
+/* ═══ GLOBALS ═══ */
+const fmtN=n=>n.toLocaleString();
+const COLORS=['#2d6b3f','#c04b3a','#b8860b','#4a7fb5','#7a5c3e','#6b8e4e','#9e5a9e','#d4883a'];
+Chart.defaults.font.family="'Noto Sans KR','JetBrains Mono',sans-serif";
+Chart.defaults.font.size=11;Chart.defaults.color='#5e5a50';
+Chart.defaults.plugins.legend.labels.usePointStyle=true;Chart.defaults.plugins.legend.labels.pointStyleWidth=8;
+
+let CUR_YEAR=2023;
+let map11,geoLayer,labelLayer;
+const charts={};
+
+function showPage(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',i===j));
+  document.querySelectorAll('.page').forEach((p,j)=>p.classList.toggle('active',i===j));
+}
+
+/* ═══ YEAR SELECTOR ═══ */
+(function(){
+  const wrap=document.getElementById('year-btns');
+  YEARS.forEach(y=>{
+    const btn=document.createElement('button');
+    btn.className='year-btn'+(y===CUR_YEAR?' active':'');
+    btn.textContent=y;
+    btn.onclick=()=>setYear(y);
+    wrap.appendChild(btn);
+  });
+})();
+
+let playTimer=null;
+function playYears(){
+  if(playTimer){clearInterval(playTimer);playTimer=null;document.getElementById('play-btn').textContent='▶ 재생';return;}
+  let idx=YEARS.indexOf(CUR_YEAR);
+  document.getElementById('play-btn').textContent='⏸ 정지';
+  playTimer=setInterval(()=>{
+    idx=(idx+1)%YEARS.length;
+    setYear(YEARS[idx]);
+    if(YEARS[idx]===2023){clearInterval(playTimer);playTimer=null;document.getElementById('play-btn').textContent='▶ 재생';}
+  },800);
+}
+
+function setYear(y){
+  CUR_YEAR=y;
+  document.querySelectorAll('.year-btn').forEach(b=>b.classList.toggle('active',parseInt(b.textContent)===y));
+  document.getElementById('yr-label').textContent=y+'년 기준';
+  document.getElementById('pie-yr-badge').textContent=y;
+  updateKPI11();updateMap();updatePie();updateTop10();updateDensity();updateInsight11();
+}
+
+/* ═══ COLOR SCALE ═══ */
+function getColor(v){
+  return v>8000?'#7f1d1d':v>5000?'#b91c1c':v>3000?'#dc2626':v>1500?'#ef4444':v>800?'#f87171':v>300?'#fca5a5':v>50?'#fecaca':v>0?'#fee2e2':'#f1ede6';
+}
+
+/* ═══ MAP ═══ */
+(function initMap(){
+  map11=L.map('map11',{
+    zoomControl:true,attributionControl:false,
+    minZoom:7,maxZoom:11,
+    maxBounds:[[33.0,124.5],[38.8,131.5]],
+    maxBoundsViscosity:1.0,
+    zoomSnap:0.5
+  }).setView([36.0,127.8],7);
+
+  // NO tile layer — just polygons on ocean-blue background
+  labelLayer=L.layerGroup().addTo(map11);
+
+  function getStyle(feat){
+    const name=feat.properties.name;
+    const v=(ALL_MUNI_DATA[name]||{})[CUR_YEAR]||0;
+    return {fillColor:getColor(v),weight:1,color:'#fff',fillOpacity:0.88};
+  }
+
+  function onEach(feat,layer){
+    const name=feat.properties.name;
+    const sido=feat.properties.sido||'';
+    layer.on({
+      mouseover:e=>{e.target.setStyle({weight:3,color:'#2c2a24',fillOpacity:0.95});e.target.bringToFront();},
+      mouseout:e=>{geoLayer.resetStyle(e.target);},
+      click:e=>{
+        // Drill-down: zoom to sido
+        const sidoName=feat.properties.sido;
+        if(sidoName && map11.getZoom()<9){
+          const bounds=[];
+          geoLayer.eachLayer(l=>{if(l.feature.properties.sido===sidoName)bounds.push(l.getBounds());});
+          if(bounds.length){
+            let combined=bounds[0];
+            bounds.forEach(b=>combined=combined.extend(b));
+            map11.fitBounds(combined,{padding:[30,30]});
+            document.getElementById('map-back').style.display='block';
+          }
+        }
+      }
+    });
+    const v=(ALL_MUNI_DATA[name]||{})[CUR_YEAR]||0;
+    if(v>0){
+      const tt=`<div class="tt-name">${name}</div><div class="tt-sido">${sido}</div>
+        <div class="tt-row"><span class="tt-label">피해본수</span><span class="tt-val bad">${fmtN(v)}본</span></div>`;
+      layer.bindTooltip(tt,{className:'map-tooltip',sticky:true});
+    }
+  }
+
+  geoLayer=L.geoJSON(KOREA_GEO,{style:getStyle,onEachFeature:onEach}).addTo(map11);
+  updateMapLabels();
+
+  // Legend
+  const lc=[{c:'#7f1d1d',l:'8,000+'},{c:'#b91c1c',l:'5,000~8,000'},{c:'#dc2626',l:'3,000~5,000'},{c:'#ef4444',l:'1,500~3,000'},{c:'#f87171',l:'800~1,500'},{c:'#fca5a5',l:'300~800'},{c:'#fecaca',l:'50~300'},{c:'#fee2e2',l:'1~50'},{c:'#f1ede6',l:'미발생'}];
+  let lh='<div class="map-legend-title">피해본수</div>';
+  lc.forEach(c=>lh+=`<div class="map-legend-row"><div class="map-legend-color" style="background:${c.c}"></div>${c.l}</div>`);
+  document.getElementById('map-legend').innerHTML=lh;
+})();
+
+function mapZoomOut(){
+  map11.setView([36.0,127.8],7);
+  document.getElementById('map-back').style.display='none';
+}
+
+function updateMapLabels(){
+  labelLayer.clearLayers();
+  const zoom=map11.getZoom();
+  const threshold=zoom>=9?100:zoom>=8?800:2000;
+  DISTRICTS.forEach(name=>{
+    const v=(ALL_MUNI_DATA[name]||{})[CUR_YEAR]||0;
+    if(v<threshold)return;
+    const d=SGG_YEARLY[name];
+    if(!d)return;
+    const vStr=v>=10000?(v/10000).toFixed(1)+'만':(v/1000).toFixed(1)+'천';
+    L.marker([d.lat,d.lng],{
+      icon:L.divIcon({className:'map-label',html:`${name} <span class="lv">${vStr}</span>`,iconSize:[0,0]})
+    }).addTo(labelLayer);
+  });
+}
+
+map11.on('zoomend',updateMapLabels);
+
+function updateMap(){
+  geoLayer.eachLayer(layer=>{
+    const name=layer.feature.properties.name;
+    const v=(ALL_MUNI_DATA[name]||{})[CUR_YEAR]||0;
+    layer.setStyle({fillColor:getColor(v),weight:1,color:'#fff',fillOpacity:0.88});
+    // Update tooltip
+    if(v>0){
+      const sido=layer.feature.properties.sido||'';
+      layer.unbindTooltip();
+      layer.bindTooltip(`<div class="tt-name">${name}</div><div class="tt-sido">${sido}</div><div class="tt-row"><span class="tt-label">피해본수</span><span class="tt-val bad">${fmtN(v)}본</span></div>`,{className:'map-tooltip',sticky:true});
+    }
+  });
+  updateMapLabels();
+}
+
+/* ═══ KPI 1.1 ═══ */
+function updateKPI11(){
+  const y=CUR_YEAR,d=NATIONAL_YEARLY[y],prev=NATIONAL_YEARLY[y-1]||d;
+  const chg=((d.infected-prev.infected)/prev.infected*100).toFixed(1);
+  const sign=chg>0?'+':'';
+  const rc=DISTRICTS.filter(k=>SGG_YEARLY[k][y]&&SGG_YEARLY[k][y].recur).length;
+  document.getElementById('kpi-11').innerHTML=`
+    <div class="kpi red"><div class="kpi-icon">🪲</div><div class="kpi-label">전국 피해본수</div><div class="kpi-val">${fmtN(d.infected)}<span class="kpi-unit">본</span></div><div class="kpi-sub">전년 대비 ${sign}${chg}%</div></div>
+    <div class="kpi green"><div class="kpi-icon">🛡️</div><div class="kpi-label">전국 방제본수</div><div class="kpi-val">${fmtN(d.controlled)}<span class="kpi-unit">본</span></div><div class="kpi-sub">방제율 ${d.controlRate}%</div></div>
+    <div class="kpi amber"><div class="kpi-icon">📍</div><div class="kpi-label">발생 시도</div><div class="kpi-val">${Object.keys(SIDO_YEARLY).length}<span class="kpi-unit">개</span></div><div class="kpi-sub">${DISTRICTS.length}개 주요 시군구</div></div>
+    <div class="kpi brown"><div class="kpi-icon">🔁</div><div class="kpi-label">반복 발생</div><div class="kpi-val">${rc}<span class="kpi-unit">개</span></div><div class="kpi-sub">${Math.round(rc/DISTRICTS.length*100)}%</div></div>
+    <div class="kpi blue"><div class="kpi-icon">🌲</div><div class="kpi-label">피해면적</div><div class="kpi-val">${fmtN(d.area)}<span class="kpi-unit">ha</span></div><div class="kpi-sub">반출금지 ${QUARANTINE_ZONES[y].designated}개</div></div>`;
+}
+updateKPI11();
+
+/* ═══ PIE (with %) ═══ */
+function updatePie(){
+  const sidos=Object.keys(SIDO_YEARLY);
+  const vals=sidos.map(s=>SIDO_YEARLY[s][CUR_YEAR].infected);
+  const total=vals.reduce((a,b)=>a+b,0);
+  if(charts.pie)charts.pie.destroy();
+  charts.pie=new Chart(document.getElementById('chart-pie'),{
+    type:'doughnut',
+    data:{labels:sidos.map((s,i)=>`${s} ${(vals[i]/total*100).toFixed(1)}%`),datasets:[{data:vals,backgroundColor:COLORS,borderWidth:2,borderColor:'#fff',hoverOffset:8}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
+      plugins:{legend:{position:'right',labels:{font:{size:12},padding:10,generateLabels:c=>{
+        const ds=c.data.datasets[0];
+        return c.data.labels.map((l,i)=>({text:l,fillStyle:ds.backgroundColor[i],strokeStyle:'#fff',lineWidth:1,index:i}));
+      }}},
+      tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmtN(ctx.raw)}본`}}
+    }}
+  });
+}
+updatePie();
+
+/* ═══ TOP10 ═══ */
+function updateTop10(){
+  const rows=DISTRICTS.map(k=>{const d=SGG_YEARLY[k][CUR_YEAR];return{name:k,sido:SGG_YEARLY[k].sido,infected:d.infected,rate:Math.round(d.controlled/d.infected*100),consec:d.consecutive};}).sort((a,b)=>b.infected-a.infected);
+  const top=rows.slice(0,10),mx=top[0].infected;
+  let h='<table class="rank-table"><thead><tr><th>#</th><th>시군구</th><th>피해</th><th>방제율</th><th>연속</th><th></th></tr></thead><tbody>';
+  top.forEach((r,i)=>{
+    h+=`<tr><td class="num">${i+1}</td><td class="name">${r.name}<br><span style="font-size:9px;color:var(--text3)">${r.sido}</span></td><td class="val">${fmtN(r.infected)}</td><td class="val ${r.rate<85?'bad':'good'}">${r.rate}%</td><td class="val">${r.consec}년</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${r.infected/mx*100}%;background:${r.rate<85?'var(--red)':'var(--amber)'}"></div></div></td></tr>`;
+  });
+  document.getElementById('top10-tbl').innerHTML=h+'</tbody></table>';
+}
+updateTop10();
+
+/* ═══ DENSITY ═══ */
+function updateDensity(){
+  const sidos=Object.keys(SIDO_YEARLY);
+  const vals=sidos.map(s=>Math.round(SIDO_YEARLY[s][CUR_YEAR].infected/SIDO_YEARLY[s][CUR_YEAR].area*1000*10)/10);
+  if(charts.density)charts.density.destroy();
+  charts.density=new Chart(document.getElementById('chart-density'),{
+    type:'bar',data:{labels:sidos,datasets:[{data:vals,backgroundColor:vals.map(v=>v>28?'#c04b3a':v>24?'#b8860b':'#3a9a6e'),borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,title:{display:true,text:'본/1,000ha'}},x:{grid:{display:false}}}}
+  });
+}
+updateDensity();
+
+/* ═══ INSIGHT 1.1 ═══ */
+function updateInsight11(){
+  const d=NATIONAL_YEARLY[CUR_YEAR];
+  const top3=['경상남도','경상북도','충청남도'].reduce((s,k)=>s+SIDO_YEARLY[k][CUR_YEAR].infected,0);
+  document.getElementById('insight-11').innerHTML=`<strong>핵심 발견 (${CUR_YEAR}):</strong> 전국 피해본수 <span class="hl">${fmtN(d.infected)}</span>본, <strong>경남·경북·충남</strong> 3개 시도가 <span class="hl">${Math.round(top3/d.infected*100)}%</span>를 차지합니다. 지도에서 시도를 클릭하면 해당 시도의 시군구별 상세를 확인할 수 있습니다.`;
+}
+updateInsight11();
+
+/* ═══ PAGE 1.2 CHARTS (static) ═══ */
+(function(){
+  // KPI
+  const d19=NATIONAL_YEARLY[2019],d23=NATIONAL_YEARLY[2023];
+  document.getElementById('kpi-12').innerHTML=`
+    <div class="kpi red"><div class="kpi-icon">📈</div><div class="kpi-label">2019 정점</div><div class="kpi-val">${fmtN(d19.infected)}<span class="kpi-unit">본</span></div><div class="kpi-sub">최대 피해</div></div>
+    <div class="kpi green"><div class="kpi-icon">📉</div><div class="kpi-label">정점 대비</div><div class="kpi-val">-${Math.round((1-d23.infected/d19.infected)*100)}<span class="kpi-unit">%</span></div><div class="kpi-sub">2019→2023</div></div>
+    <div class="kpi amber"><div class="kpi-icon">📊</div><div class="kpi-label">전년 대비</div><div class="kpi-val">${((d23.infected-NATIONAL_YEARLY[2022].infected)/NATIONAL_YEARLY[2022].infected*100).toFixed(1)}<span class="kpi-unit">%</span></div><div class="kpi-sub">감소율 둔화</div></div>
+    <div class="kpi blue"><div class="kpi-icon">🗓️</div><div class="kpi-label">CAGR</div><div class="kpi-val">${((Math.pow(d23.infected/NATIONAL_YEARLY[2016].infected,1/7)-1)*100).toFixed(1)}<span class="kpi-unit">%</span></div><div class="kpi-sub">2016→2023</div></div>`;
+
+  // Trend
+  new Chart(document.getElementById('chart-trend'),{type:'bar',data:{labels:YEARS,datasets:[
+    {label:'피해본수',data:YEARS.map(y=>NATIONAL_YEARLY[y].infected),backgroundColor:'rgba(192,75,58,.6)',borderRadius:4,order:2},
+    {label:'방제본수',data:YEARS.map(y=>NATIONAL_YEARLY[y].controlled),backgroundColor:'rgba(58,154,110,.45)',borderRadius:4,order:2},
+    {label:'방제율(%)',data:YEARS.map(y=>NATIONAL_YEARLY[y].controlRate),type:'line',borderColor:'#4a7fb5',pointBackgroundColor:'#4a7fb5',borderWidth:2.5,yAxisID:'y2',tension:.3,pointRadius:5}
+  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index'},scales:{y:{beginAtZero:true,title:{display:true,text:'본'}},y2:{position:'right',min:70,max:100,title:{display:true,text:'%'},grid:{display:false}},x:{grid:{display:false}}}}});
+
+  // Stack
+  const sidos=Object.keys(SIDO_YEARLY);
+  new Chart(document.getElementById('chart-stack'),{type:'bar',data:{labels:YEARS,datasets:sidos.map((s,i)=>({label:s,data:YEARS.map(y=>SIDO_YEARLY[s][y].infected),backgroundColor:COLORS[i]}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},scales:{y:{stacked:true,beginAtZero:true},x:{stacked:true,grid:{display:false}}}}});
+
+  // YoY
+  const yoy=YEARS.slice(1).map(y=>Math.round((NATIONAL_YEARLY[y].infected-NATIONAL_YEARLY[y-1].infected)/NATIONAL_YEARLY[y-1].infected*1000)/10);
+  new Chart(document.getElementById('chart-yoy'),{type:'bar',data:{labels:YEARS.slice(1),datasets:[{data:yoy,backgroundColor:yoy.map(v=>v>0?'rgba(192,75,58,.7)':'rgba(58,154,110,.7)'),borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{title:{display:true,text:'%'}},x:{grid:{display:false}}}}});
+
+  // Quarantine
+  new Chart(document.getElementById('chart-qz'),{type:'bar',data:{labels:YEARS,datasets:[
+    {label:'지정',data:YEARS.map(y=>QUARANTINE_ZONES[y].designated),backgroundColor:'rgba(192,75,58,.5)',borderRadius:4},
+    {label:'해제',data:YEARS.map(y=>QUARANTINE_ZONES[y].released),backgroundColor:'rgba(58,154,110,.5)',borderRadius:4},
+    {label:'면적(만ha)',data:YEARS.map(y=>Math.round(QUARANTINE_ZONES[y].total_area/10000*10)/10),type:'line',borderColor:'#b8860b',pointBackgroundColor:'#b8860b',borderWidth:2,yAxisID:'y2',tension:.3,pointRadius:4}
+  ]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,title:{display:true,text:'시군구'}},y2:{position:'right',title:{display:true,text:'만ha'},grid:{display:false}},x:{grid:{display:false}}}}});
+
+  // Pine forest decline (estimated)
+  const pineData=YEARS.map(y=>{let total=0;DISTRICTS.forEach(k=>{if(SGG_YEARLY[k][y])total+=SGG_YEARLY[k][y].pine_area;});return total;});
+  new Chart(document.getElementById('chart-pine-decline'),{type:'line',data:{labels:YEARS,datasets:[{label:'주요 시군구 소나무림 면적(ha)',data:pineData,borderColor:'#2d6b3f',backgroundColor:'rgba(45,107,63,.1)',fill:true,tension:.3,pointRadius:5,pointBackgroundColor:'#2d6b3f',borderWidth:2.5}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{title:{display:true,text:'ha'}},x:{grid:{display:false}}}}});
+})();
+
+/* ═══ PAGE 1.3 CHARTS ═══ */
+(function(){
+  const lr=CONTROL_BY_AUTHORITY[2023].local_gov;
+  document.getElementById('kpi-13').innerHTML=`
+    <div class="kpi green"><div class="kpi-icon">✅</div><div class="kpi-label">산림청 방제율</div><div class="kpi-val">99.9<span class="kpi-unit">%</span></div><div class="kpi-sub">직접관리</div></div>
+    <div class="kpi red"><div class="kpi-icon">⚠️</div><div class="kpi-label">지자체 방제율</div><div class="kpi-val">${lr}<span class="kpi-unit">%</span></div><div class="kpi-sub">격차 -${(99.9-lr).toFixed(1)}%p</div></div>
+    <div class="kpi amber"><div class="kpi-icon">🔁</div><div class="kpi-label">5년+ 연속발생</div><div class="kpi-val">${DISTRICTS.filter(k=>SGG_YEARLY[k][2023].consecutive>=5).length}<span class="kpi-unit">개</span></div><div class="kpi-sub">구조적 취약</div></div>
+    <div class="kpi blue"><div class="kpi-icon">📏</div><div class="kpi-label">평균 연속</div><div class="kpi-val">${(DISTRICTS.reduce((s,k)=>s+SGG_YEARLY[k][2023].consecutive,0)/DISTRICTS.length).toFixed(1)}<span class="kpi-unit">년</span></div><div class="kpi-sub">주요 시군구</div></div>`;
+  document.getElementById('ins-lr').textContent=lr+'%';
+
+  // Authority
+  new Chart(document.getElementById('chart-auth'),{type:'line',data:{labels:YEARS,datasets:[
+    {label:'산림청',data:YEARS.map(y=>CONTROL_BY_AUTHORITY[y].forestry_agency),borderColor:'#3a9a6e',backgroundColor:'rgba(58,154,110,.08)',fill:true,tension:.3,pointRadius:5,pointBackgroundColor:'#3a9a6e',borderWidth:2.5},
+    {label:'지자체',data:YEARS.map(y=>CONTROL_BY_AUTHORITY[y].local_gov),borderColor:'#c04b3a',backgroundColor:'rgba(192,75,58,.08)',fill:true,tension:.3,pointRadius:5,pointBackgroundColor:'#c04b3a',borderWidth:2.5}
+  ]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:60,max:105,title:{display:true,text:'%'}},x:{grid:{display:false}}}}});
+
+  // Methods
+  const md=CONTROL_METHODS[2023],mk=['벌채','모두베기','파쇄','훈증','나무주사','약제살포','수종전환','소각매몰'];
+  new Chart(document.getElementById('chart-methods'),{type:'bar',data:{labels:mk,datasets:[{data:mk.map(k=>md[k]),backgroundColor:COLORS,borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true},y:{grid:{display:false}}}}});
+
+  // Recurrence
+  const bins={};DISTRICTS.forEach(k=>{const c=SGG_YEARLY[k][2023].consecutive;const l=c>=10?'10+':String(c);bins[l]=(bins[l]||0)+1;});
+  const rl=['1','2','3','4','5','6','7','8','9','10+'];
+  new Chart(document.getElementById('chart-recur'),{type:'bar',data:{labels:rl,datasets:[{data:rl.map(l=>bins[l]||0),backgroundColor:rl.map((_,i)=>i>=4?'rgba(192,75,58,.75)':'rgba(184,134,11,.45)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}},x:{title:{display:true,text:'연속발생(년)'},grid:{display:false}}}}});
+
+  // Low table
+  const rows=DISTRICTS.map(k=>{const d=SGG_YEARLY[k][2023];return{name:k,sido:SGG_YEARLY[k].sido,rate:Math.round(d.controlled/d.infected*1000)/10,infected:d.infected,consec:d.consecutive};}).sort((a,b)=>a.rate-b.rate);
+  let h='<table class="rank-table"><thead><tr><th>#</th><th>시군구</th><th>방제율</th><th>피해</th><th>연속</th></tr></thead><tbody>';
+  rows.slice(0,8).forEach((r,i)=>h+=`<tr><td class="num">${i+1}</td><td class="name">${r.name}<br><span style="font-size:9px;color:var(--text3)">${r.sido}</span></td><td class="val bad">${r.rate}%</td><td class="val">${fmtN(r.infected)}</td><td class="val">${r.consec}년</td></tr>`);
+  document.getElementById('low-tbl').innerHTML=h+'</tbody></table>';
+
+  // Scatter
+  const pts=[];DISTRICTS.forEach(k=>{if(!SGG_YEARLY[k][2022])return;const r22=SGG_YEARLY[k][2022].controlled/SGG_YEARLY[k][2022].infected*100;const ch=(SGG_YEARLY[k][2023].infected-SGG_YEARLY[k][2022].infected)/SGG_YEARLY[k][2022].infected*100;pts.push({x:Math.round(r22*10)/10,y:Math.round(ch*10)/10,name:k});});
+  new Chart(document.getElementById('chart-scatter'),{type:'scatter',data:{datasets:[{data:pts,backgroundColor:pts.map(p=>p.y>0?'rgba(192,75,58,.5)':'rgba(58,154,110,.5)'),borderColor:pts.map(p=>p.y>0?'#c04b3a':'#3a9a6e'),borderWidth:1.5,pointRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const p=pts[c.dataIndex];return `${p.name}: 방제율${p.x}%, 변화${p.y>0?'+':''}${p.y}%`;}}}},scales:{x:{title:{display:true,text:'2022 방제율(%)'},min:75,max:100},y:{title:{display:true,text:'2023 피해변화(%)'}}}}});
+
+  // Burden chart (forest area per staff - simulated)
+  const burdenData=DISTRICTS.map(k=>{
+    const d=SGG_YEARLY[k][2023];
+    const forestPerStaff=d.forest_area/(2+Math.random()*3); // simulated staff
+    const rate=d.controlled/d.infected*100;
+    return {x:Math.round(forestPerStaff),y:Math.round(rate*10)/10,name:k};
+  });
+  new Chart(document.getElementById('chart-burden'),{type:'scatter',data:{datasets:[{data:burdenData,backgroundColor:'rgba(122,92,62,.5)',borderColor:'#7a5c3e',borderWidth:1.5,pointRadius:7}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const p=burdenData[c.dataIndex];return `${p.name}: ${fmtN(p.x)}ha/인, 방제율${p.y}%`;}}}},scales:{x:{title:{display:true,text:'담당자 1인당 산림면적(ha)'}},y:{title:{display:true,text:'방제율(%)'},min:75,max:100}}}});
+})();
+
+/* ═══ PAGE 1.4 HEATMAP ═══ */
+(function(){
+  const sorted=DISTRICTS.slice().sort((a,b)=>SGG_YEARLY[b][2023].infected-SGG_YEARLY[a][2023].infected);
+  function hmColor(v){
+    return v>8000?'#7f1d1d':v>5000?'#b91c1c':v>3000?'#dc2626':v>1500?'#ef4444':v>800?'#f87171':v>300?'#fca5a5':v>50?'#fecaca':'#fef2f2';
+  }
+  function hmText(v){return v>3000?'#fff':'#2c2a24';}
+  let h='<table class="heatmap"><thead><tr><th>시군구</th>';
+  YEARS.forEach(y=>h+=`<th>${y}</th>`);
+  h+='</tr></thead><tbody>';
+  sorted.forEach(k=>{
+    h+=`<tr><td class="row-name">${k}</td>`;
+    YEARS.forEach(y=>{
+      const v=SGG_YEARLY[k][y].infected;
+      h+=`<td style="background:${hmColor(v)};color:${hmText(v)}" title="${k} ${y}: ${fmtN(v)}본">${fmtN(v)}</td>`;
+    });
+    h+='</tr>';
+  });
+  document.getElementById('heatmap-wrap').innerHTML=h+'</tbody></table>';
+})();
+
+/* HHI and Top5 share */
+(function(){
+  const hhiData=YEARS.map(y=>{
+    const total=DISTRICTS.reduce((s,k)=>s+SGG_YEARLY[k][y].infected,0);
+    return Math.round(DISTRICTS.reduce((s,k)=>{const share=SGG_YEARLY[k][y].infected/total;return s+share*share;},0)*10000);
+  });
+  new Chart(document.getElementById('chart-hhi'),{type:'line',data:{labels:YEARS,datasets:[{label:'HHI(×10000)',data:hhiData,borderColor:'#7a5c3e',backgroundColor:'rgba(122,92,62,.1)',fill:true,tension:.3,pointRadius:5,borderWidth:2.5}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{title:{display:true,text:'HHI'}},x:{grid:{display:false}}}}});
+
+  const top5Data=YEARS.map(y=>{
+    const total=DISTRICTS.reduce((s,k)=>s+SGG_YEARLY[k][y].infected,0);
+    const sorted=DISTRICTS.slice().sort((a,b)=>SGG_YEARLY[b][y].infected-SGG_YEARLY[a][y].infected);
+    const top5sum=sorted.slice(0,5).reduce((s,k)=>s+SGG_YEARLY[k][y].infected,0);
+    return Math.round(top5sum/total*1000)/10;
+  });
+  new Chart(document.getElementById('chart-top5share'),{type:'bar',data:{labels:YEARS,datasets:[{label:'TOP5 점유율(%)',data:top5Data,backgroundColor:'rgba(192,75,58,.6)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:30,max:60,title:{display:true,text:'%'}},x:{grid:{display:false}}}}});
+})();
+</script>
+</body>
+</html>
